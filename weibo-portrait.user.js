@@ -1,8 +1,11 @@
 // ==UserScript==
 // @name         微博竖屏布局
-// @namespace    https://github.com/Havadking
-// @version      0.1.0
-// @description  把微博网页版改成推特式布局：左侧细导航栏、正文铺满、热搜 Top10 抽屉（按 H 或点左下角 🔥）
+// @namespace    https://github.com/Havadking/weibo-portrait
+// @homepageURL  https://github.com/Havadking/weibo-portrait
+// @downloadURL  https://raw.githubusercontent.com/Havadking/weibo-portrait/main/weibo-portrait.user.js
+// @updateURL    https://raw.githubusercontent.com/Havadking/weibo-portrait/main/weibo-portrait.user.js
+// @version      0.2.0
+// @description  把微博网页版改成推特式布局：左侧细导航栏、正文铺满、顶栏热搜 Top10 抽屉（快捷键 H）
 // @match        https://weibo.com/*
 // @match        https://www.weibo.com/*
 // @run-at       document-start
@@ -75,13 +78,9 @@
     /* 视频封面会跟着栏宽放大，限制一下；图片是固定尺寸缩略图，不用管 */
     ${LAYOUT} [class*="_videoBox_"] { max-width: 640px; }
 
-    /* ---------- 热搜按钮 + 抽屉 ---------- */
-    #wpr-hot-fab {
-      position: fixed; left: ${(RAIL_W - 44) / 2}px; bottom: 20px; z-index: 1001;
-      width: 44px; height: 44px; border: 0; border-radius: 50%; cursor: pointer;
-      background: #ff8200; color: #fff; font-size: 20px; box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
-    }
-    #wpr-hot-fab:hover { filter: brightness(1.08); }
+    /* ---------- 顶栏热搜按钮 + 抽屉 ---------- */
+    #wpr-hot-tab { cursor: pointer; }
+    #wpr-hot-tab.wpr-on svg { color: #ff8200; }
     #wpr-hot {
       position: fixed; right: 0; top: 60px; bottom: 0; z-index: 1000; width: 340px; max-width: 90vw;
       background: var(--wpr-bg, #fff); color: var(--wpr-fg, #333);
@@ -186,14 +185,34 @@
 
   function toggleHot(open = !panel.classList.contains('wpr-open')) {
     panel.classList.toggle('wpr-open', open);
+    document.getElementById('wpr-hot-tab')?.classList.toggle('wpr-on', open);
     if (open) {
       syncTheme();
       loadHot(false);
     }
   }
 
+  const FLAME_SVG = '<path d="M15 4.5c.7 3.3-1 5.6-2.9 7.6C10.3 14 9 15.8 9 18.6 9 22.2 11.7 25 15 25s6-2.8 6-6.4c0-2.3-.9-4.3-2.3-5.9-.2 1.6-1 2.8-2.3 3.5.5-4.6-.8-8.6-1.4-11.7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>';
+
+  // 顶栏的热搜按钮：复制"消息"按钮当模板，样式就和顶栏其他按钮完全一致
+  function mountHotTab() {
+    if (document.getElementById('wpr-hot-tab')) return;
+    const msg = document.querySelector(`${TOP} a[title="消息"]`);
+    if (!msg) return;
+    const tab = msg.cloneNode(true);
+    tab.id = 'wpr-hot-tab';
+    tab.title = '微博热搜（快捷键 H）';
+    tab.removeAttribute('href');
+    tab.querySelectorAll('.woo-tab-active').forEach(el => el.classList.remove('woo-tab-active'));
+    tab.querySelectorAll('.woo-badge-main').forEach(el => el.remove());
+    const svg = tab.querySelector('svg');
+    if (svg) svg.innerHTML = FLAME_SVG;
+    tab.classList.toggle('wpr-on', panel.classList.contains('wpr-open'));
+    tab.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); toggleHot(); });
+    msg.after(tab);
+  }
+
   function buildHot() {
-    const fab = h('button', { id: 'wpr-hot-fab', title: '微博热搜（快捷键 H）' }, '🔥');
     const refresh = h('button', { title: '刷新' }, '↻');
     const close = h('button', { title: '关闭（Esc）' }, '✕');
     timeEl = h('span', { className: 'wpr-time' });
@@ -202,9 +221,8 @@
       h('div', { className: 'wpr-hd' }, h('b', {}, '微博热搜'), timeEl, refresh, close),
       list,
     );
-    document.body.append(fab, panel);
+    document.body.append(panel);
 
-    fab.addEventListener('click', e => { e.stopPropagation(); toggleHot(); });
     refresh.addEventListener('click', () => loadHot(true));
     close.addEventListener('click', () => toggleHot(false));
     document.addEventListener('click', e => {
@@ -223,12 +241,13 @@
   function init() {
     buildHot();
     decorateRail();
-    // 微博是单页应用，切页面/加载分组时左栏会重新渲染
+    mountHotTab();
+    // 微博是单页应用，顶栏和左栏是异步渲染的，切页面时也可能重新渲染
     let pending = false;
     new MutationObserver(() => {
       if (pending) return;
       pending = true;
-      requestAnimationFrame(() => { pending = false; decorateRail(); });
+      requestAnimationFrame(() => { pending = false; decorateRail(); mountHotTab(); });
     }).observe(document.body, { childList: true, subtree: true });
   }
 
