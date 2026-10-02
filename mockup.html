@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>微博竖屏布局草图</title>
+<style>
+:root{
+  --bg:#f2f2f2; --card:#fff; --text:#333; --sub:#939393; --line:#eee;
+  --accent:#ff8200; --accent-soft:#fff3e6; --hover:#f5f5f5;
+  --rail-w:72px; --hot-w:280px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+
+/* 讨论用工具条 */
+.demo-bar{position:sticky;top:0;z-index:50;background:#222;color:#ddd;font-size:12px;padding:8px 16px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.demo-bar b{color:#fff}
+.demo-bar label{cursor:pointer;display:flex;gap:4px;align-items:center}
+
+/* 顶栏 */
+.top{position:sticky;top:34px;z-index:40;height:52px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:12px}
+.logo{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700}
+.search{flex:1;max-width:420px;height:34px;border-radius:17px;background:var(--hover);display:flex;align-items:center;padding:0 14px;color:var(--sub)}
+.top .sp{flex:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:#c9d6e3}
+
+/* 三栏 */
+.frame{display:flex;justify-content:center;gap:12px;padding:0 12px}
+.rail{position:sticky;top:86px;align-self:flex-start;width:var(--rail-w);height:calc(100vh - 86px);overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:2px;transition:width .15s}
+.feed{flex:1;min-width:0;max-width:760px;padding-top:12px}
+.hot{position:sticky;top:86px;align-self:flex-start;width:var(--hot-w);flex-shrink:0;padding-top:12px}
+
+/* 左侧细导航 */
+.rail .item{width:56px;padding:8px 0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--text);font-size:11px;position:relative}
+.rail .item:hover{background:var(--hover)}
+.rail .item.on{color:var(--accent)}
+.rail .item.on .ic{background:var(--accent-soft);color:var(--accent)}
+.rail .ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:transparent}
+.rail .grp .ic{background:#ececec;font-size:14px;font-weight:600}
+.rail .sep{width:32px;height:1px;background:#ddd;margin:8px 0}
+.rail .badge{position:absolute;top:4px;right:8px;background:var(--accent);color:#fff;font-size:10px;line-height:14px;padding:0 4px;border-radius:7px}
+.rail .tip{display:none}
+/* 图标+文字（加宽）模式 */
+body.wide-rail{--rail-w:150px}
+body.wide-rail .rail{align-items:stretch;padding:10px 6px}
+body.wide-rail .rail .item{width:auto;flex-direction:row;gap:10px;padding:6px 10px;font-size:14px}
+body.wide-rail .rail .ic{width:30px;height:30px}
+body.wide-rail .rail .sep{width:auto}
+body.wide-rail .rail .badge{position:static;margin-left:auto}
+
+/* 卡片 */
+.card{background:var(--card);border-radius:8px;margin-bottom:10px;padding:16px 20px}
+.tabs{display:flex;gap:22px;padding:12px 20px;font-size:15px}
+.tabs span.on{color:var(--accent);font-weight:600}
+.post-h{display:flex;gap:12px;align-items:center}
+.post-h .avatar{width:44px;height:44px}
+.name{font-weight:600}
+.meta{color:var(--sub);font-size:12px}
+.post p{margin:10px 0 0 56px;font-size:15px}
+.topic{color:#eb7350}
+.pics{margin:10px 0 0 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:520px}
+.pics div{aspect-ratio:1;background:linear-gradient(135deg,#dde5ee,#c7d3e0);border-radius:4px}
+.pics.one{grid-template-columns:1fr;max-width:460px}
+.pics.one div{aspect-ratio:3/4}
+.acts{display:flex;justify-content:space-around;color:var(--sub);margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px}
+
+/* 热搜 */
+.hot .card{padding:14px 16px}
+.hot h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center}
+.hot h3 small{margin-left:auto;font-weight:400;color:var(--sub);font-size:12px;cursor:pointer}
+.hot ol{list-style:none;margin:0;padding:0}
+.hot li{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer}
+.hot li:hover{background:var(--hover)}
+.hot .rk{width:18px;text-align:center;font-weight:700;color:#f6a623;font-style:italic}
+.hot li:nth-child(-n+3) .rk{color:#f26d5f}
+.hot .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hot .n{color:var(--sub);font-size:12px}
+.tag{font-size:10px;color:#fff;border-radius:3px;padding:0 3px;line-height:16px}
+.tag.hot-t{background:#ff9406}.tag.new{background:#ff3852}.tag.up{background:#8fc0ec}
+
+/* 方案B：热搜抽屉 */
+.rail .item.hot-fab{display:none}
+body.hot-drawer .hot{position:fixed;right:0;top:86px;bottom:0;background:var(--bg);padding:12px;box-shadow:-6px 0 16px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .2s;z-index:30}
+body.hot-drawer.drawer-open .hot{transform:none}
+body.hot-drawer .rail .item.hot-fab{display:flex}
+/* 方案C：热搜放在信息流顶部，可折叠 */
+.hot-inline{display:none}
+body.hot-top .hot{display:none}
+body.hot-top .hot-inline{display:block}
+.hot-inline ol{columns:2;column-gap:24px;list-style:none;margin:0;padding:0}
+.hot-inline li{display:flex;gap:8px;padding:3px 0;break-inside:avoid}
+.hot-inline .rk{width:16px;font-weight:700;font-style:italic;color:#f6a623}
+.hot-inline li:nth-child(-n+3) .rk{color:#f26d5f}
+.hot-inline .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.note{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:6px 12px;border-radius:14px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <b>讨论用开关（不属于设计）</b>
+  <span>左栏：
+    <label><input type="radio" name="rail" value="slim" checked>细（图标）</label>
+    <label><input type="radio" name="rail" value="wide">图标+文字</label>
+  </span>
+  <span>热搜：
+    <label><input type="radio" name="hot" value="col" checked>A 右侧栏</label>
+    <label><input type="radio" name="hot" value="drawer">B 按钮抽屉</label>
+    <label><input type="radio" name="hot" value="top">C 信息流顶部</label>
+  </span>
+</div>
+
+<header class="top">
+  <div class="logo">微</div>
+  <div class="search">🔍&nbsp; 搜索微博</div>
+  <div class="sp"></div>
+  <span>🏠</span><span>🔥</span><span>▶️</span><span>✉️</span>
+  <div class="avatar"></div>
+</header>
+
+<div class="frame">
+  <nav class="rail">
+    <div class="item on" title="全部关注"><div class="ic">≡</div><span class="lb">全部</span></div>
+    <div class="item" title="最新微博"><div class="ic">⏱</div><span class="lb">最新</span></div>
+    <div class="item" title="特别关注"><div class="ic">★</div><span class="lb">特别</span></div>
+    <div class="item" title="好友圈"><div class="ic">👥</div><span class="lb">好友圈</span></div>
+    <div class="sep"></div>
+    <div class="item grp" title="技术相关"><div class="ic">技</div><span class="lb">技术相关</span></div>
+    <div class="item grp" title="游戏"><div class="ic">游</div><span class="lb">游戏</span></div>
+    <div class="item grp" title="投资"><div class="ic">投</div><span class="lb">投资</span><span class="badge">6</span></div>
+    <div class="item grp" title="同事"><div class="ic">事</div><span class="lb">同事</span></div>
+    <div class="item grp" title="名人明星"><div class="ic">星</div><span class="lb">名人明星</span></div>
+    <div class="item grp" title="同学"><div class="ic">学</div><span class="lb">同学</span></div>
+    <div class="item grp" title="悄悄关注"><div class="ic">悄</div><span class="lb">悄悄关注</span></div>
+    <div class="sep"></div>
+    <div class="item hot-fab" title="热搜" onclick="document.body.classList.toggle('drawer-open')"><div class="ic">🔥</div><span class="lb">热搜</span></div>
+  </nav>
+
+  <main class="feed">
+    <div class="card hot-inline">
+      <div style="display:flex;align-items:center;margin-bottom:6px"><b style="font-size:15px">🔥 微博热搜 Top10</b><span class="meta" style="margin-left:auto">点击收起 ▴</span></div>
+      <ol id="hotInline"></ol>
+    </div>
+
+    <div class="card tabs"><span class="on">全部</span><span>原创</span><span>视频</span><span>超话社区</span><span>V+微博</span><span>群微博</span></div>
+
+    <article class="card post">
+      <div class="post-h"><div class="avatar"></div><div><div class="name">博主 A</div><div class="meta">6小时前 · 来自 微博网页版</div></div></div>
+      <p><span class="topic">#某个热门话题#</span> 这里是微博正文，宽度跟随中间栏自适应，竖屏下能比现在宽不少，一行能放下更多字，长文也不用一直点"展开"。</p>
+      <div class="pics one"><div></div></div>
+      <div class="acts"><span>↗ 207</span><span>💬 42</span><span>👍 544</span></div>
+    </article>
+
+    <article class="card post">
+      <div class="post-h"><div class="avatar"></div><div><div class="name">博主 B</div><div class="meta">7小时前 · 来自 iPhone</div></div></div>
+      <p>多图微博的九宫格示例。图片区域可以单独限制最大宽度，避免中间栏变宽后图片被拉得过大。</p>
+      <div class="pics"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+      <div class="acts"><span>↗ 12</span><span>💬 8</span><span>👍 96</span></div>
+    </article>
+
+    <article class="card post">
+      <div class="post-h"><div class="avatar"></div><div><div class="name">博主 C</div><div class="meta">昨天 21:04</div></div></div>
+      <p>纯文字微博示例。</p>
+      <div class="acts"><span>↗ 3</span><span>💬 1</span><span>👍 20</span></div>
+    </article>
+  </main>
+
+  <aside class="hot">
+    <div class="card">
+      <h3>🔥 微博热搜<small>↻ 刷新</small></h3>
+      <ol id="hotList"></ol>
+      <div class="meta" style="margin-top:6px;text-align:right">更新于 10:32 · 点击跳转搜索</div>
+    </div>
+  </aside>
+</div>
+
+<div class="note">左栏悬停显示完整分组名 · 内容均为示例</div>
+
+<script>
+const hot=[["示例热搜话题一","125.7万","hot-t"],["示例热搜话题二","84.9万","hot-t"],["示例热搜话题三","70.1万",""],["一个比较长的示例热搜标题会被省略号截断","63.4万","new"],["示例热搜话题五","39.4万",""],["示例热搜话题六","27.7万","up"],["示例热搜话题七","25.2万",""],["示例热搜话题八","25.0万","new"],["示例热搜话题九","22.3万",""],["示例热搜话题十","19.8万",""]];
+const tagTxt={"hot-t":"热","new":"新","up":"沸"};
+document.getElementById('hotList').innerHTML=hot.map((h,i)=>`<li><span class="rk">${i+1}</span><span class="t">${h[0]}</span>${h[2]?`<span class="tag ${h[2]}">${tagTxt[h[2]]}</span>`:''}<span class="n">${h[1]}</span></li>`).join('');
+document.getElementById('hotInline').innerHTML=hot.map((h,i)=>`<li><span class="rk">${i+1}</span><span class="t">${h[0]}</span></li>`).join('');
+document.querySelectorAll('input[name=rail]').forEach(r=>r.onchange=()=>document.body.classList.toggle('wide-rail',r.value==='wide'&&r.checked));
+document.querySelectorAll('input[name=hot]').forEach(r=>r.onchange=()=>{
+  document.body.classList.remove('hot-drawer','hot-top','drawer-open');
+  if(r.value==='drawer')document.body.classList.add('hot-drawer');
+  if(r.value==='top')document.body.classList.add('hot-top');
+});
+</script>
+</body>
+</html>
